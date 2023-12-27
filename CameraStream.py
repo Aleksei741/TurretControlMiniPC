@@ -89,3 +89,10 @@ class CameraStream():
             return self.ip
         elif param == self.PORT:
             return self.port
+            
+    def GetStatusVideo(self):
+        if(self.proc):
+            p = self.proc.poll()
+            if p is None:
+                return True
+        return False

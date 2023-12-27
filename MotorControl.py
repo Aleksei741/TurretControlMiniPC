@@ -1,15 +1,16 @@
 import time
-from gpiozero import OutputDevice, LED
+from gpiozero import PWMOutputDevice, OutputDevice, LED
 import threading
 
 
 class motor_control():
 
-    def __init__(self, StepPin, Motor1, DirMotor1, Motor2, DirMotor2, Trigger, Magazine):
-        self.StepPin = OutputDevice(StepPin)
-        self.Motor1 = OutputDevice(Motor1)
+    def __init__(self, Motor1, DirMotor1, Motor2, DirMotor2, Trigger, Magazine):
+        # self.Motor1 = OutputDevice(Motor1)
+        self.Motor1 = PWMOutputDevice(Motor1)
         self.DirMotor1 = OutputDevice(DirMotor1)
-        self.Motor2 = OutputDevice(Motor2)
+        # self.Motor2 = OutputDevice(Motor2)
+        self.Motor2 = PWMOutputDevice(Motor2)
         self.DirMotor2 = OutputDevice(DirMotor2)
         self.Trigger = OutputDevice(Trigger)
         self.Magazine = OutputDevice(Magazine)
@@ -43,35 +44,38 @@ class motor_control():
         self.timeLastControl = time.time()
 
     def motionMotor1(self, command):
+        if command < 0:
+            self.rotate_counterclockwise(self.DirMotor1)
+        elif command > 0:
+            self.rotate_clockwise(self.DirMotor1)
+            
+        # print(f'Motor1 {command}')
         self.__motionMotor(command, self.Motor1)
         self.__flagLastControl()
 
     def motionMotor2(self, command):
+        if command < 0:
+            self.rotate_counterclockwise(self.DirMotor2)
+        elif command > 0:
+            self.rotate_clockwise(self.DirMotor2)
+            
+        # print(f'Motor2 {command}')
         self.__motionMotor(command, self.Motor2)
         self.__flagLastControl()
 
     def __motionMotor(self, command, motor):
-        if command < 0:
-            self.rotate_counterclockwise(self.DirMotor1)
+        if command != 0:
+            command = abs(command)
+            if motor.frequency != command:
+                motor.frequency = command
             if motor.value == 0:
-                motor.on()
-        elif command > 0:
-            self.rotate_clockwise(self.DirMotor1)
-            if motor.value == 0:
-                motor.on()
+                motor.value = 0.5
+                # motor.on()
         else:
-            if motor.value == 1:
-                motor.off()
+            if motor.value != 0:
+                motor.value = 0
+                # motor.off()
                 
-        self.__StepPinControl()
-    
-    def __StepPinControl(self):
-        if self.Motor1.value == 1 or self.Motor2.value == 1:
-            if self.StepPin.value == 0:
-                self.StepPin.on()
-        elif self.StepPin.value == 1:
-            self.StepPin.off()
-
     def motionTrigger(self, command):
         if command > 0:
             if self.Trigger.value == 0:

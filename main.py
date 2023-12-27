@@ -1,13 +1,15 @@
 import socket
 import select
 from CameraStream import CameraStream
+from VibrationSensor import hit_sensor
 from MotorControl import motor_control
 
 HOST = "0.0.0.0"  # Standard loopback interface address (localhost)
 PORT = 20101  # Port to listen on (non-privileged ports are > 1023)
 
 video = CameraStream()
-turret = motor_control(27, 18, 17, 23, 22, 12, 6)
+turret = motor_control(18, 17, 23, 22, 12, 6)
+sensor = hit_sensor(27)
 
 def command_parse(data):
     if data[:2] != b'\x54\x43':
@@ -33,9 +35,11 @@ def command_parse(data):
 
     # control command
     if data[2] == ord(b'\x43'):
-        command = int.from_bytes(data[3:5], "little", signed=False)
+        command = int.from_bytes(data[3:5], "little", signed=True)
+        # print(f'Motor1 {command}')
         turret.motionMotor1(command)
-        command = int.from_bytes(data[5:7], "little", signed=False)
+        command = int.from_bytes(data[5:7], "little", signed=True)
+        # print(f'Motor2 {command}')
         turret.motionMotor2(command)
         command = int(data[7])
         turret.motionTrigger(command)
@@ -43,7 +47,30 @@ def command_parse(data):
 
     return 0
 
-
+def ResponseFill():
+    data = list()
+    
+    data.append(ord(b'\x54')) # ('T')
+    data.append(ord(b'\x43')) # ('C')
+    
+    # Video status
+    data.append(video.GetStatusVideo())
+    
+    # Sensor cnt
+    data.append(sensor.GetCntSensor())
+    
+    # reserv
+    data.append(0)
+    data.append(0)
+    data.append(0)
+    data.append(0)
+    data.append(0)
+    data.append(0)
+    
+    data.append(ord(b'\xA5'))
+    data.append(ord(b'\xA5'))
+    
+    return bytes(data)
 
 
 while True:
@@ -71,5 +98,8 @@ while True:
 
                     if command_parse(data) == 0:
                         break
+                        
+                    ResponseData = ResponseFill()
+                    conn.sendall(ResponseData)
                 else:
                     break
