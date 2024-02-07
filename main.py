@@ -31,6 +31,12 @@ def command_parse(data):
                 video.stopTranslation()
                 return 1
 
+    # Sensor
+    if data[2] == ord(b'\x53'):
+        # param
+        if data[3] == ord(b'\x50'):
+            sensor.SetParam(data[4], int.from_bytes(data[5:7], "little", signed=True))
+            return 1
 
 
     # control command
