@@ -13,6 +13,9 @@ class hit_sensor():
 		self.cnt = 0
 		self.sensor.when_deactivated = self.SensorActive
 
+	def __del__(self):
+		self.sensor.close()
+
 	def SensorActive(self):
 		if self.timeLastActive + self.delayActive < time.time():
 			self.timeLastActive = time.time()
