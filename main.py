@@ -11,33 +11,33 @@ video = CameraStream()
 turret = motor_control(18, 17, 23, 22, 12, 6)
 sensor = hit_sensor(27)
 
+
 def command_parse(data):
     if data[:2] != b'\x54\x43':
-        return 0
+        return None
 
     # video
     if data[2] == ord(b'\x56'):
         # param
         if data[3] == ord(b'\x50'):
             video.SetParam(data[4], int.from_bytes(data[5:9], "little", signed=False)) # "little"
-            return 1
+            return ParametersResponseFill(data[2], data[3], data[4], 0)
 
         # start/stop
         if data[3] == ord(b'\x53'):
             if data[4] == ord(b'\x01'):
                 video.startTranslation()
-                return 1
+                return ParametersResponseFill(data[2], data[3], data[4], 1)
             elif data[4] == ord(b'\x00'):
                 video.stopTranslation()
-                return 1
+                return ParametersResponseFill(data[2], data[3], data[4], 0)
 
     # Sensor
     if data[2] == ord(b'\x53'):
         # param
         if data[3] == ord(b'\x50'):
-            sensor.SetParam(data[4], int.from_bytes(data[5:7], "little", signed=True))
-            return 1
-
+            sensor.SetParam(data[4], int.from_bytes(data[6:8], "little", signed=True))
+            return ParametersResponseFill(data[2], data[3], data[4], 0)
 
     # control command
     if data[2] == ord(b'\x43'):
@@ -49,22 +49,101 @@ def command_parse(data):
         turret.motionMotor2(command)
         command = int(data[7])
         turret.motionTrigger(command)
-        return 1
+        return WorkResponseFill()
 
-    return 0
+    # Movement parameters
+    if data[2] == ord(b'\x56'): # Movement
+        if data[3] == ord(b'\x50'): # Parameters
+            if not data[5]:
+                turret.SetParam(data[4], int.from_bytes(data[6:10], "little", signed=True))
+            return ParametersResponseFill(data[2], data[3], data[4], turret.GetParam(data[4]))
+        elif data[3] == ord(b'\x46'): # Flag
+            turret.SetFlag(data[4], int(data[6]))
+            return ParametersResponseFill(data[2], data[3], data[4], 0)
+    return None
 
-def ResponseFill():
+
+def ParametersResponseFill(module, fParameters, Parameter, value):
+    data = list()
+
+    data.append(ord(b'\x54'))  # ('T')
+    data.append(ord(b'\x43'))  # ('C')
+    data.append(module)  # Module
+    data.append(fParameters)  # flag parameters 'P' 0x50
+    data.append(Parameter)  # num parameter
+
+    x1, x2, x3, x4 = value.to_bytes(4, byteorder='little', signed=False)
+    data.append(ord(x1))
+    data.append(ord(x2))
+    data.append(ord(x3))
+    data.append(ord(x4))
+
+    data.append(0)
+    data.append(0)
+    data.append(0)
+    data.append(0)
+    data.append(0)
+    data.append(0)
+    data.append(0)
+    data.append(0)
+    data.append(0)
+    data.append(0)
+    data.append(0)
+    data.append(0)
+    data.append(0)
+    data.append(0)
+    data.append(0)
+    data.append(0)
+    data.append(0)
+    data.append(0)
+    data.append(0)
+
+    data.append(ord(b'\xA5'))
+    data.append(ord(b'\xA5'))
+
+    return bytes(data)
+
+
+def WorkResponseFill():
     data = list()
     
     data.append(ord(b'\x54')) # ('T')
     data.append(ord(b'\x43')) # ('C')
-    
-    # Video status
-    data.append(video.GetStatusVideo())
-    
+    data.append(ord(b'\x57')) # ('W')
+
+    x1, x2, x3, x4 = turret.GetPositionM1().to_bytes(4, byteorder='little', signed=True)
+    data.append(ord(x1))
+    data.append(ord(x2))
+    data.append(ord(x3))
+    data.append(ord(x4))
+
+    x1, x2, x3, x4 = turret.GetPositionM2().to_bytes(4, byteorder='little', signed=True)
+    data.append(ord(x1))
+    data.append(ord(x2))
+    data.append(ord(x3))
+    data.append(ord(x4))
+
+    x1, x2, x3, x4 = turret.GetNeedPositionM1().to_bytes(4, byteorder='little', signed=True)
+    data.append(ord(x1))
+    data.append(ord(x2))
+    data.append(ord(x3))
+    data.append(ord(x4))
+
+    x1, x2, x3, x4 = turret.GetNeedPositionM2().to_bytes(4, byteorder='little', signed=True)
+    data.append(ord(x1))
+    data.append(ord(x2))
+    data.append(ord(x3))
+    data.append(ord(x4))
+
     # Sensor cnt
     data.append(sensor.GetCntSensor())
-    
+
+    # reserv
+    data.append(0)
+
+    # Video status
+    data.append(video.GetStatusVideo())
+
     # reserv
     data.append(0)
     data.append(0)
@@ -102,10 +181,11 @@ while True:
                     if not data:
                         break
 
-                    if command_parse(data) == 0:
+                    ResponseData = command_parse(data)
+
+                    if not ResponseData:
                         break
-                        
-                    ResponseData = ResponseFill()
+
                     conn.sendall(ResponseData)
                 else:
                     break
