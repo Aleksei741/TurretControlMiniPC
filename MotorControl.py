@@ -51,8 +51,8 @@ class motor_control():
         self.PositionMotor2 = 0
         self.NeedPositionMotor1 = 0
         self.NeedPositionMotor2 = 0
-        self.RotateM1 = 0
-        self.RotateM2 = 0
+        self.RotateM1 = False
+        self.RotateM2 = False
 
         # инициализация флагов
         self.NoLimit = False
@@ -90,34 +90,7 @@ class motor_control():
 
     def __MotionProcessingM1(self):
         while self.ThreadMotionActive:
-            if self.RotateM1:
-                # выбор направления движения
-                if self.RotateM1 > 0:
-                    if self.DirMotor1.value == 0:
-                        self.DirMotor1.on()
-                elif self.RotateM1 < 0:
-                    if self.DirMotor1.value == 1:
-                        self.DirMotor1.off()
-
-                if self.DirMotor1.value == 1 and (self.PositionMotor1 < self.MaxSteppersM1 or self.NoLimit):
-                    # делаем шаг
-                    self.ImpulseM1_thread.join()
-                    self.ImpulseM1_thread.start()
-                    # Считаем шаг
-                    self.PositionMotor1 = self.PositionMotor1 + 1
-                elif self.DirMotor1.value == 0 and (self.PositionMotor1 > 0 or self.NoLimit):
-                    # делаем шаг
-                    self.Motor1.on()
-                    _start_time_ = time.time_ns() + 100000
-                    while _start_time_ > time.time_ns():
-                        time.sleep(0)
-                    self.Motor1.off()
-                    # Считаем шаг
-                    self.PositionMotor1 = self.PositionMotor1 - 1
-
-                self.NeedPositionMotor1 = self.PositionMotor1
-
-            elif self.PositionMotor1 != self.NeedPositionMotor1:
+            if self.PositionMotor1 != self.NeedPositionMotor1:
                 # выбор направления движения
                 if self.PositionMotor1 > self.NeedPositionMotor1:
                     if self.DirMotor1.value == 0:
@@ -139,40 +112,14 @@ class motor_control():
                 # делаем задержку
                 time.delay(self.DelayM1)
             else:
+                self.ImpulseM1_thread.join()
                 if self.DirMotor1.value == 1:
                     self.DirMotor1.off()
                 time.sleep(0.1)
 
     def __MotionProcessingM2(self):
         while self.ThreadMotionActive:
-            if self.RotateM2:
-                # выбор направления движения
-                if self.RotateM2 > 0:
-                    if self.DirMotor2.value == 0:
-                        self.DirMotor2.on()
-                elif self.RotateM2 < 0:
-                    if self.DirMotor2.value == 1:
-                        self.DirMotor2.off()
-
-                if self.DirMotor2.value == 1 and (self.PositionMotor2 < self.MaxSteppersM2 or self.NoLimit):
-                    # делаем шаг
-                    self.ImpulseM2_thread.join()
-                    self.ImpulseM2_thread.start()
-                    # Считаем шаг
-                    self.PositionMotor2 = self.PositionMotor2 + 1
-                elif self.DirMotor2.value == 0 and (self.PositionMotor2 > 0 or self.NoLimit):
-                    # делаем шаг
-                    self.Motor2.on()
-                    _start_time_ = time.time_ns() + 100000
-                    while _start_time_ > time.time_ns():
-                        time.sleep(0)
-                    self.Motor2.off()
-                    # Считаем шаг
-                    self.PositionMotor2 = self.PositionMotor2 - 1
-
-                self.NeedPositionMotor2 = self.PositionMotor2
-
-            elif self.PositionMotor2 != self.NeedPositionMotor2:
+            if self.PositionMotor2 != self.NeedPositionMotor2:
                 # выбор направления движения
                 if self.PositionMotor2 > self.NeedPositionMotor2:
                     if self.DirMotor2.value == 0:
@@ -194,9 +141,10 @@ class motor_control():
                 # делаем задержку
                 time.delay(self.DelayM2)
             else:
+                self.ImpulseM2_thread.join()
                 if self.DirMotor2.value == 1:
                     self.DirMotor2.off()
-                time.sleep(0.1)
+                time.sleep(0.05)
 
     def __ImpulseM1(self):
         self.Motor1.on()
@@ -212,28 +160,38 @@ class motor_control():
 
     def motionMotor1(self, command):
         if abs(command) == 32000:
-            self.RotateM1 = command
+            self.RotateM1 = True
+            self.NeedPositionMotor1 = self.PositionMotor1 + command
+        elif self.RotateM1:
+            self.RotateM1 = False
+            self.NeedPositionMotor1 = self.PositionMotor1
         else:
-            self.RotateM1 = 0
             self.NeedPositionMotor1 = self.NeedPositionMotor1 + command
-            if self.NeedPositionMotor1 < 0:
-                if not self.NoLimit:
-                    self.NeedPositionMotor1 = 0
-            elif self.NeedPositionMotor1 > self.MaxSteppersM1:
-                if not self.NoLimit:
-                    self.NeedPositionMotor1 = self.MaxSteppersM1
+
+        if self.NeedPositionMotor1 < 0:
+            if not self.NoLimit:
+                self.NeedPositionMotor1 = 0
+        elif self.NeedPositionMotor1 > self.MaxSteppersM1:
+            if not self.NoLimit:
+                self.NeedPositionMotor1 = self.MaxSteppersM1
+
         self.__flagLastControl()
 
     def motionMotor2(self, command):
         if abs(command) == 32000:
-            self.RotateM2 = command
+            self.RotateM2 = True
+            self.NeedPositionMotor2 = self.PositionMotor1 + command
+        elif self.RotateM2:
+            self.RotateM2 = False
+            self.NeedPositionMotor1 = self.PositionMotor1
         else:
-            self.RotateM2 = 0
             self.NeedPositionMotor2 = self.NeedPositionMotor2 + command
-            if self.NeedPositionMotor2 < 0:
-                self.NeedPositionMotor2 = 0
-            elif self.NeedPositionMotor2 > self.MaxSteppersM2:
-                self.NeedPositionMotor2 = self.MaxSteppersM2
+
+        if self.NeedPositionMotor2 < 0:
+            self.NeedPositionMotor2 = 0
+        elif self.NeedPositionMotor2 > self.MaxSteppersM2:
+            self.NeedPositionMotor2 = self.MaxSteppersM2
+
         self.__flagLastControl()
 
     def motionTrigger(self, command):
@@ -304,12 +262,8 @@ class motor_control():
     def SetFlag(self, flag, value):
         ret = 0
         if flag == self.NO_LIMIT:
-            if self.NoLimit == True and value == False:
-                self.PositionMotor1 = 0
-                self.PositionMotor2 = 0
-                self.NeedPositionMotor1 = 0
-                self.NeedPositionMotor2 = 0
             self.NoLimit = value
+            print(f"NoLimit {self.NoLimit}")
             ret = 1
         elif flag == self.ZERO_POSITION:
             if value == 1:
@@ -317,6 +271,7 @@ class motor_control():
                 self.PositionMotor2 = 0
                 self.NeedPositionMotor1 = 0
                 self.NeedPositionMotor2 = 0
+                print(f"ZeroPosition {self.ZERO_POSITION}")
             ret = 1
 
         return ret
