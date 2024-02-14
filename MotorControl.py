@@ -15,7 +15,6 @@ class motor_control():
         self.NO_LIMIT = ord(b'\x4C')
         self.ZERO_POSITION = ord(b'\x5A')
 
-
         # Инициализаци портов
         self.Motor1 = OutputDevice(Motor1)
         # self.Motor1 = PWMOutputDevice(Motor1)
@@ -58,6 +57,11 @@ class motor_control():
         self.NoLimit = False
         self.ZeroPositionSet = False
 
+        # Плавный старт/стоп
+        self.IndexM1 = 0
+        self.IndexM2 = 0
+        self.__initDelayMas()
+
         # Иниализация основного потока работы
         self.ThreadMotionActive = True
         self.MotionProcessingM1_thread = threading.Thread(target=self.__MotionProcessingM1)
@@ -70,6 +74,14 @@ class motor_control():
         self.watch_dog_thread = threading.Thread(target=self.__watch_dog)
         self.watch_dog_active = True
         self.watch_dog_thread.start()
+
+    def __initDelayMas(self):
+        self.DelayMasM1 = [0.05, 0.05, 0.05, self.DelayM1 * 10, self.DelayM1 * 10, self.DelayM1 * 10, self.DelayM1 * 9,
+                           self.DelayM1 * 8, self.DelayM1 * 7, self.DelayM1 * 6, self.DelayM1 * 5, self.DelayM1 * 4,
+                           self.DelayM1 * 3, self.DelayM1 * 2, self.DelayM1]
+        self.DelayMasM2 = [0.05, 0.05, 0.05, self.DelayM2 * 10, self.DelayM2 * 10, self.DelayM2 * 10, self.DelayM2 * 9,
+                           self.DelayM2 * 8, self.DelayM2 * 7, self.DelayM2 * 6, self.DelayM2 * 5, self.DelayM2 * 4,
+                           self.DelayM2 * 3, self.DelayM2 * 2, self.DelayM2]
 
     def __del__(self):
         self.ThreadMotionActive = False
@@ -90,43 +102,73 @@ class motor_control():
 
     def __MotionProcessingM1(self):
         while self.ThreadMotionActive:
-            if self.PositionMotor1 != self.NeedPositionMotor1:
+            if self.PositionMotor1 != self.NeedPositionMotor1 or self.IndexM1:
+
                 # выбор направления движения
-                if self.PositionMotor1 > self.NeedPositionMotor1:
-                    if self.DirMotor1.value == 0:
-                        self.DirMotor1.on()
-                elif self.PositionMotor1 < self.NeedPositionMotor1:
-                    if self.DirMotor1.value == 1:
-                        self.DirMotor1.off()
+                if not self.IndexM1:
+                    if self.PositionMotor1 > self.NeedPositionMotor1:
+                        if self.DirMotor1.value == 0:
+                            self.DirMotor1.on()
+                    elif self.PositionMotor1 < self.NeedPositionMotor1:
+                        if self.DirMotor1.value == 1:
+                            self.DirMotor1.off()
 
                 # делаем шаг
                 self.ImpulseM1_thread.join()
                 self.ImpulseM1_thread.start()
 
                 # Считаем шаг
-                if self.DirMotor1.value == 1:
+                if self.DirMotor1.value == 1:   # Направо
                     self.PositionMotor1 = self.PositionMotor1 + 1
-                else:
+                else:   # Налево
                     self.PositionMotor1 = self.PositionMotor1 - 1
 
                 # делаем задержку
-                time.delay(self.DelayM1)
+                time.delay(self.DelayMasM1[self.IndexM1])
+
+                # Считаем задержку
+                len_mas = len(self.DelayMasM1)
+                if self.DirMotor1.value == 1:   # Направо
+                    if self.PositionMotor1 < self.NeedPositionMotor1:
+                        Diff = self.NeedPositionMotor1 - self.PositionMotor1
+                        if (Diff > len_mas) and (self.IndexM1 < len_mas):
+                            self.IndexM1 = self.IndexM1 + 1
+                        elif (Diff > len_mas / 2) and (self.IndexM1 < len_mas / 2):
+                            self.IndexM1 = self.IndexM1 + 1
+                        elif (Diff < len_mas) and (self.IndexM1 > 0):
+                            self.IndexM1 = self.IndexM1 - 1
+                    elif self.IndexM1:
+                        self.IndexM1 = self.IndexM1 - 1
+                else:   # Налево
+                    if self.PositionMotor1 > self.NeedPositionMotor1:
+                        Diff = self.PositionMotor1 - self.NeedPositionMotor1
+                        if (Diff > len_mas) and (self.IndexM1 < len_mas):
+                            self.IndexM1 = self.IndexM1 + 1
+                        elif (Diff > len_mas / 2) and (self.IndexM1 < len_mas / 2):
+                            self.IndexM1 = self.IndexM1 + 1
+                        elif (Diff < len_mas) and (self.IndexM1 > 0):
+                            self.IndexM1 = self.IndexM1 - 1
+                    elif self.IndexM1:
+                        self.IndexM1 = self.IndexM1 - 1
+
             else:
                 self.ImpulseM1_thread.join()
                 if self.DirMotor1.value == 1:
                     self.DirMotor1.off()
-                time.sleep(0.1)
+                time.sleep(0.05)
 
     def __MotionProcessingM2(self):
         while self.ThreadMotionActive:
-            if self.PositionMotor2 != self.NeedPositionMotor2:
+            if self.PositionMotor2 != self.NeedPositionMotor2 or self.IndexM2:
+
                 # выбор направления движения
-                if self.PositionMotor2 > self.NeedPositionMotor2:
-                    if self.DirMotor2.value == 0:
-                        self.DirMotor2.on()
-                elif self.PositionMotor2 < self.NeedPositionMotor2:
-                    if self.DirMotor2.value == 1:
-                        self.DirMotor2.off()
+                if not self.IndexM2:
+                    if self.PositionMotor2 > self.NeedPositionMotor2:
+                        if self.DirMotor2.value == 0:
+                            self.DirMotor2.on()
+                    elif self.PositionMotor2 < self.NeedPositionMotor2:
+                        if self.DirMotor2.value == 1:
+                            self.DirMotor2.off()
 
                 # делаем шаг
                 self.ImpulseM2_thread.join()
@@ -139,7 +181,32 @@ class motor_control():
                     self.PositionMotor2 = self.PositionMotor2 - 1
 
                 # делаем задержку
-                time.delay(self.DelayM2)
+                time.delay(self.DelayMasM2[self.IndexM2])
+
+                # Считаем задержку
+                len_mas = len(self.DelayMasM2)
+                if self.DirMotor2.value == 1:  # Направо
+                    if self.PositionMotor2 < self.NeedPositionMotor2:
+                        Diff = self.NeedPositionMotor2 - self.PositionMotor2
+                        if (Diff > len_mas) and (self.IndexM2 < len_mas):
+                            self.IndexM2 = self.IndexM2 + 1
+                        elif (Diff > len_mas / 2) and (self.IndexM2 < len_mas / 2):
+                            self.IndexM2 = self.IndexM2 + 1
+                        elif (Diff < len(self.DelayMasM2)) and (self.IndexM2 > 0):
+                            self.IndexM2 = self.IndexM2 - 1
+                    elif self.IndexM2:
+                        self.IndexM2 = self.IndexM2 - 1
+                else:  # Налево
+                    if self.PositionMotor2 > self.NeedPositionMotor2:
+                        Diff = self.PositionMotor2 - self.NeedPositionMotor2
+                        if (Diff > len_mas) and (self.IndexM2 < len_mas):
+                            self.IndexM2 = self.IndexM2 + 1
+                        elif (Diff > len_mas / 2) and (self.IndexM2 < len_mas / 2):
+                            self.IndexM2 = self.IndexM2 + 1
+                        elif (Diff < len_mas) and (self.IndexM2 > 0):
+                            self.IndexM2 = self.IndexM2 - 1
+                    elif self.IndexM2:
+                        self.IndexM2 = self.IndexM2 - 1
             else:
                 self.ImpulseM2_thread.join()
                 if self.DirMotor2.value == 1:
@@ -229,6 +296,7 @@ class motor_control():
             self.DelayM1 = 1.0 / float(self.FreqM1)
             if self.DelayM1 < 0.001:
                 self.DelayM1 = 0.001
+            self.__initDelayMas()
             print(f"Delay motor 1 {self.DelayM1}")
             ret = 1
         elif param == self.FREQ_MOTOR_2:
@@ -238,6 +306,7 @@ class motor_control():
             self.DelayM2 = 1.0 / float(self.FreqM2)
             if self.DelayM2 < 0.001:
                 self.DelayM2 = 0.001
+            self.__initDelayMas()
             print(f"Delay motor 1 {self.DelayM2}")
             ret = 1
 
