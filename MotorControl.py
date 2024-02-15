@@ -74,16 +74,20 @@ class motor_control():
         self.MotionProcessingM1_thread.start()
         self.MotionProcessingM2_thread = threading.Thread(target=self.__MotionProcessingM2)
         self.MotionProcessingM2_thread.start()
+
+        self.SaveParameters_event = threading.Event()
+        self.SaveParameters_thread = threading.Thread(target=self.__SaveParameters)
+        self.SaveParameters_thread.start()
         
         self.watch_dog_thread = threading.Thread(target=self.__watch_dog)
         self.watch_dog_active = True
         self.watch_dog_thread.start()
 
     def __initDelayMas(self):
-        self.DelayMasM1 = [self.DelayM1 * 10, self.DelayM1 * 9,
+        self.DelayMasM1 = [self.DelayM1 * 9, self.DelayM1 * 9,
                            self.DelayM1 * 8, self.DelayM1 * 7, self.DelayM1 * 6, self.DelayM1 * 5, self.DelayM1 * 4,
                            self.DelayM1 * 3, self.DelayM1 * 2, self.DelayM1]
-        self.DelayMasM2 = [self.DelayM2 * 10, self.DelayM2 * 9,
+        self.DelayMasM2 = [self.DelayM2 * 9, self.DelayM2 * 9,
                            self.DelayM2 * 8, self.DelayM2 * 7, self.DelayM2 * 6, self.DelayM2 * 5, self.DelayM2 * 4,
                            self.DelayM2 * 3, self.DelayM2 * 2, self.DelayM2]
 
@@ -92,6 +96,9 @@ class motor_control():
         self.watch_dog_active = False
         self.MotionProcessingM1_thread.join()
         self.MotionProcessingM2_thread.join()
+        self.ImpulseM1_thread.terminate()
+        self.ImpulseM2_thread.terminate()
+        self.SaveParameters_thread.terminate()
         self.watch_dog_thread.join()
         self.Motor1.off()
         self.Motor1.close()
@@ -327,8 +334,7 @@ class motor_control():
             ret = 1
 
         if ret:
-            with open('MotorControl.ini', 'w') as configfile:
-                self.config.write(configfile)
+            self.SaveParameters_event.set()
 
         return ret
 
@@ -382,4 +388,11 @@ class motor_control():
                 self.motionAllOff()
             time.sleep(0.05)
 
+    def __SaveParameters(self):
+        while self.ThreadMotionActive:
+            self.SaveParameters_event.wait()
+            time.sleep(5)
+            with open('MotorControl.ini', 'w') as configfile:
+                self.config.write(configfile)
+            self.SaveParameters_event.clear()
 
