@@ -38,10 +38,10 @@ def command_parse(data):
         if data[3] == ord(b'\x50'): # Parameters
             if not data[5]:
                 sensor.SetParam(data[4], int.from_bytes(data[6:8], "little", signed=True))
-            return ParametersResponseFill(data[2], data[3], data[4], 0)
+            return ParametersResponseFill(data[2], data[3], data[4], sensor.GetParam(data[4]))
         elif data[3] == ord(b'\x46'):  # Flag
             sensor.SetFlag(data[4], int(data[6]))
-            return ParametersResponseFill(data[2], data[3], data[4], 0)
+            return ParametersResponseFill(data[2], data[3], data[4], 1)
 
     # control command
     if data[2] == ord(b'\x43'):
@@ -83,7 +83,7 @@ def ParametersResponseFill(module, fParameters, Parameter, value):
     data.append(x2)
     data.append(x3)
     data.append(x4)
-
+    
     data.append(0)
     data.append(0)
     data.append(0)
@@ -142,7 +142,8 @@ def WorkResponseFill():
     data.append(x4)
 
     # HP
-    data.append(sensor.GetHealth())
+    x1, x2, x3, x4 = sensor.GetHealth().to_bytes(4, byteorder='little', signed=True)
+    data.append(x1)
 
     # reserv
     data.append(0)

@@ -62,7 +62,7 @@ class hit_sensor():
 		while True:
 			while self.Damage:
 				if self.Damage[0] + self.DamageLifeTime < time.time():
-					print(f'Del Time {self.Damage.pop(0)}')
+					self.Damage.pop(0)
 				else:
 					break
 			if self.ResetDmg:
@@ -82,12 +82,16 @@ class hit_sensor():
 
 	def GetParam(self, param):
 		if param == self.DELAY:
-			return self.delaySensor * 1000
+			print(f"Request delay {int(self.delaySensor * 1000)}")
+			return int(self.delaySensor * 1000)
 		elif param == self.HEALTH:
+			print(f"Request healt {self.NumHealth}")
 			return self.NumHealth
 		elif param == self.MINUTES:
+			print(f"Request DamageLifeTimeMin {self.DamageLifeTimeMin}")
 			return self.DamageLifeTimeMin
 		elif param == self.SECONDS:
+			print(f"Request DamageLifeTimeSec {self.DamageLifeTimeSec}")
 			return self.DamageLifeTimeSec
 
 		return None
@@ -96,7 +100,7 @@ class hit_sensor():
 		ret = 0
 		if param == self.DELAY:
 			self.config["Sensor"]["Delay"] = str(value)
-			self.delayActive = float(int(self.config["Sensor"]["Delay"]))/1000.0
+			self.delaySensor = float(int(self.config["Sensor"]["Delay"]))/1000.0
 			print(f"Sensor delay active {self.delaySensor}")
 			ret = 1
 		elif param == self.HEALTH:
