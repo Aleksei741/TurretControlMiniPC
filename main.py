@@ -138,8 +138,8 @@ def WorkResponseFill():
     data.append(x3)
     data.append(x4)
 
-    # Sensor cnt
-    data.append(sensor.GetCntSensor())
+    # HP
+    data.append(sensor.GetHealth())
 
     # reserv
     data.append(0)
