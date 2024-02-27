@@ -35,9 +35,12 @@ def command_parse(data):
     # Sensor
     if data[2] == ord(b'\x53'):
         # param
-        if data[3] == ord(b'\x50'):
+        if data[3] == ord(b'\x50'): # Parameters
             if not data[5]:
                 sensor.SetParam(data[4], int.from_bytes(data[6:8], "little", signed=True))
+            return ParametersResponseFill(data[2], data[3], data[4], 0)
+        elif data[3] == ord(b'\x46'):  # Flag
+            sensor.SetFlag(data[4], int(data[6]))
             return ParametersResponseFill(data[2], data[3], data[4], 0)
 
     # control command

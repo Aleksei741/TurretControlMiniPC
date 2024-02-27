@@ -12,6 +12,10 @@ class hit_sensor():
 		self.HEALTH = ord(b'\x48')
 		self.MINUTES = ord(b'\x4D')
 		self.SECONDS = ord(b'\x53')
+		self.RESET = ord(b'\x52')
+
+		# Флаг сброс урона
+		self.ResetDmg = False
 
 		# Инициализируем параметры перемещения
 		self.config = configparser.ConfigParser()
@@ -61,6 +65,9 @@ class hit_sensor():
 					print(f'Del Time {self.Damage.pop(0)}')
 				else:
 					break
+			if self.ResetDmg:
+				self.Damage.clear()
+				self.ResetDmg = False
 			self.Health = self.NumHealth - len(self.Damage)
 			time.sleep(self.delaySensor / 4)
 
@@ -93,6 +100,8 @@ class hit_sensor():
 			print(f"Sensor delay active {self.delaySensor}")
 			ret = 1
 		elif param == self.HEALTH:
+			if value > 120:
+				value = 120
 			self.config["Health"]["Health"] = str(value)
 			self.NumHealth = int(self.config["Health"]["Health"])
 			print(f"Health Set {self.NumHealth}")
@@ -114,6 +123,15 @@ class hit_sensor():
 
 		if ret:
 			self.SaveParameters_event.set()
+
+		return ret
+
+	def SetFlag(self, flag, value):
+		ret = 0
+		if flag == self.RESET:
+			self.ResetDmg = True
+			print(f"Reset damage")
+			ret = 1
 
 		return ret
 
