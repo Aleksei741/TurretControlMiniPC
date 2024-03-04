@@ -33,11 +33,12 @@ class CameraStream():
                                       "-f", "v4l2",
                                       "-i", "/dev/video0",
                                       "-preset", "ultrafast",
+                                      "-tune", "zerolatency",
+                                      "-fflags", "nobuffer",
                                       "-framerate", f"{self.framerate}",
                                       "-vcodec", "libx264",
                                       "-s:v", f"{self.height}x{self.weight}",
                                       "-b:v", f"{self.bitrate}K",
-                                      "-tune", "zerolatency",
                                       "-f", "rtp",
                                       f"rtp://{self.ip}:{self.port}"])
 
