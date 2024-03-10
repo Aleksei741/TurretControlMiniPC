@@ -113,16 +113,26 @@
 
 ## Установка параметров движения
 
-### Максимальное количество шагов из нулевого положения 
-|Байт|1|2|3|4|5|6|7|8|9|10|11|12|
-|----|-|-|-|-|-|-|-|-|-|--|--|--|
-|Значение|'T' (0x54)|'C' (0x43)|'M' (0x56)|'P' (0x50)|0x01|0-Установить/1-прочитать|MaxSteppersStepMotor1 (Byte 1)|MaxSteppersStepMotor1 (Byte 2)|MaxSteppersStepMotor1 (Byte 3)|MaxSteppersStepMotor1 (Byte 4)|0xA5|0xA5|
-|Описание|Turret|Control|Movement|Parameters|Max steppers step motor1|Reade|Максимальное количество шагов шагового двигателя 1|...|...|...|Константа|Константа|
+### Максимальное и минимальное количество шагов из нулевого положения 
+|Байт|1|2|3|4| 5                        |6| 7                                                    |8|9|10|11|12|
+|----|-|-|-|-|--------------------------|-|------------------------------------------------------|-|-|--|--|--|
+|Значение|'T' (0x54)|'C' (0x43)|'M' (0x56)|'P' (0x50)| 0x01                     |0-Установить/1-прочитать| MaxSteppersStepMotor1 (Byte 1)                       |MaxSteppersStepMotor1 (Byte 2)|MaxSteppersStepMotor1 (Byte 3)|MaxSteppersStepMotor1 (Byte 4)|0xA5|0xA5|
+|Описание|Turret|Control|Movement|Parameters| MaxPositionStepMotor1 |Reade| Максимальное положение 1 двигателя (микрошагов от 0) |...|...|...|Константа|Константа|
 
-|Байт|1|2|3|4|5|6|7|8|9|10|11|12|
-|----|-|-|-|-|-|-|-|-|-|--|--|--|
-|Значение|'T' (0x54)|'C' (0x43)|'M' (0x56)|'P' (0x50)|0x02|0-Установить/1-прочитать|MaxSteppersStepMotor2 (Byte 1)|MaxSteppersStepMotor2 (Byte 2)|MaxSteppersStepMotor2 (Byte 3)|MaxSteppersStepMotor2 (Byte 4)|0xA5|0xA5|
-|Описание|Turret|Control|Movement|Parameters|Max steppers step motor2|Reade|Максимальное количество шагов шагового двигателя 2|...|...|...|Константа|Константа|
+|Байт|1|2|3|4| 5                     |6| 7                                                    |8|9|10|11|12|
+|----|-|-|-|-|-----------------------|-|------------------------------------------------------|-|-|--|--|--|
+|Значение|'T' (0x54)|'C' (0x43)|'M' (0x56)|'P' (0x50)| 0x02                  |0-Установить/1-прочитать| MaxSteppersStepMotor2 (Byte 1)                       |MaxSteppersStepMotor2 (Byte 2)|MaxSteppersStepMotor2 (Byte 3)|MaxSteppersStepMotor2 (Byte 4)|0xA5|0xA5|
+|Описание|Turret|Control|Movement|Parameters| MaxPositionStepMotor2 |Reade| Максимальное положение 2 двигателя (микрошагов от 0) |...|...|...|Константа|Константа|
+
+|Байт|1|2|3|4| 5                     |6| 7                                                   |8|9|10|11|12|
+|----|-|-|-|-|-----------------------|-|-----------------------------------------------------|-|-|--|--|--|
+|Значение|'T' (0x54)|'C' (0x43)|'M' (0x56)|'P' (0x50)| 0x03                  |0-Установить/1-прочитать| MaxSteppersStepMotor1 (Byte 1)                      |MaxSteppersStepMotor1 (Byte 2)|MaxSteppersStepMotor1 (Byte 3)|MaxSteppersStepMotor1 (Byte 4)|0xA5|0xA5|
+|Описание|Turret|Control|Movement|Parameters| MinPositionStepMotor1 |Reade| Минимальное положение 1 двигателя (микрошагов от 0) |...|...|...|Константа|Константа|
+
+|Байт|1|2|3|4| 5                     |6| 7                                                   |8|9|10|11|12|
+|----|-|-|-|-|-----------------------|-|-----------------------------------------------------|-|-|--|--|--|
+|Значение|'T' (0x54)|'C' (0x43)|'M' (0x56)|'P' (0x50)| 0x04                  |0-Установить/1-прочитать| MaxSteppersStepMotor2 (Byte 1)                      |MaxSteppersStepMotor2 (Byte 2)|MaxSteppersStepMotor2 (Byte 3)|MaxSteppersStepMotor2 (Byte 4)|0xA5|0xA5|
+|Описание|Turret|Control|Movement|Parameters| MinPositionStepMotor2 |Reade| Минимальное положение 2 двигателя (микрошагов от 0) |...|...|...|Константа|Константа|
 
 ### Включение движения без ограничений
 |Байт|1|2|3|4|5|6|7|8|9|10|11|12|
@@ -148,14 +158,16 @@
 |Описание|Turret|Control|Movement|Parameters|FreqMotor 2|Reade|Частота управления шаговым двигателем 2, Гц|...|Резерв|Резерв|Константа|Константа|
 
 ### Принимаемые значения
-|Параметр|Значения|
-|-|-|
-|MaxSteppersStepMotor1|0-0xFFFFFFFF|
-|MaxSteppersStepMotor2|0-0xFFFFFFFF|
-|FlagNoLimitStepMotor|1-выкл ограничения/0-Нормальный режим работы|
-|FlagZeroPosition|1-Турель в нулевой позиции (Сброс счетчиков положения)/0-Нормальный режим работы|
-|FreqMotor1|0-1000|
-|FreqMotor2|0-1000|
+| Параметр              |Значения|
+|-----------------------|-|
+| MaxPositionStepMotor1 |от −2 147 483 648 до 2 147 483 647|
+| MaxPositionStepMotor2 |от −2 147 483 648 до 2 147 483 647|
+| MinPositionStepMotor1 |от −2 147 483 648 до 2 147 483 647|
+| MinPositionStepMotor2 |от −2 147 483 648 до 2 147 483 647|
+| FlagNoLimitStepMotor  |1-выкл ограничения/0-Нормальный режим работы|
+| FlagZeroPosition      |1-Турель в нулевой позиции (Сброс счетчиков положения)/0-Нормальный режим работы|
+| FreqMotor1            |0-1000|
+| FreqMotor2            |0-1000|
 
 ## Ответ на установку/чтетение параметров
 

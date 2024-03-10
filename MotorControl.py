@@ -8,8 +8,10 @@ class motor_control():
 
     def __init__(self, Motor1, DirMotor1, Motor2, DirMotor2, Trigger, Magazine):
         # Константы
-        self.STEPPERS_1 = ord(b'\x01')
-        self.STEPPERS_2 = ord(b'\x02')
+        self.MAX_POSITION_STEPPERS_1 = ord(b'\x01')
+        self.MAX_POSITION_STEPPERS_2 = ord(b'\x02')
+        self.MIN_POSITION_STEPPERS_1 = ord(b'\x03')
+        self.MIN_POSITION_STEPPERS_2 = ord(b'\x04')
         self.FREQ_MOTOR_1 = ord(b'\x11')
         self.FREQ_MOTOR_2 = ord(b'\x12')
         self.NO_LIMIT = ord(b'\x4C')
@@ -32,14 +34,22 @@ class motor_control():
             self.config.read("MotorControl.ini")
         else:
             self.config["MotionOption"] = {}
-            self.config["MotionOption"]["MaxSteppersM1"] = '0'
-            self.config["MotionOption"]["MaxSteppersM2"] = '0'
+            self.config["MotionOption"]["MaxPositionM1"] = '0'
+            self.config["MotionOption"]["MaxPositionM2"] = '0'
+            self.config["MotionOption"]["MinPositionM1"] = '0'
+            self.config["MotionOption"]["MinPositionM2"] = '0'
             self.config["MotionOption"]["FreqM1"] = '200'
             self.config["MotionOption"]["FreqM2"] = '200'
-        self.MaxSteppersM1 = int(self.config["MotionOption"]["MaxSteppersM1"])
-        self.MaxSteppersM2 = int(self.config["MotionOption"]["MaxSteppersM2"])
+        self.MaxPositionM1 = int(self.config["MotionOption"]["MaxPositionM1"])
+        self.MaxPositionM2 = int(self.config["MotionOption"]["MaxPositionM2"])
+        self.MinPositionM1 = int(self.config["MotionOption"]["MinPositionM1"])
+        self.MinPositionM2 = int(self.config["MotionOption"]["MinPositionM2"])
         self.FreqM1 = int(self.config["MotionOption"]["FreqM1"])
+        if self.FreqM1 == 0:
+            self.FreqM1 = 1
         self.FreqM2 = int(self.config["MotionOption"]["FreqM2"])
+        if self.FreqM2 == 0:
+            self.FreqM2 = 1
         self.DelayM1 = 1.0/float(self.FreqM1)
         if self.DelayM1 < 0.001:
             self.DelayM1 = 0.001
@@ -253,12 +263,12 @@ class motor_control():
         else:
             self.NeedPositionMotor1 = self.NeedPositionMotor1 + command
 
-        if self.NeedPositionMotor1 < 0:
+        if self.NeedPositionMotor1 < self.MinPositionM1:
             if not self.NoLimit:
-                self.NeedPositionMotor1 = 0
-        elif self.NeedPositionMotor1 > self.MaxSteppersM1:
+                self.NeedPositionMotor1 = self.MinPositionM1
+        elif self.NeedPositionMotor1 > self.MaxPositionM1:
             if not self.NoLimit:
-                self.NeedPositionMotor1 = self.MaxSteppersM1
+                self.NeedPositionMotor1 = self.MaxPositionM1
         if command:
             print(f'command {command} Position {self.PositionMotor1} NeedPosition {self.NeedPositionMotor1}')
         self.__flagLastControl()
@@ -273,12 +283,12 @@ class motor_control():
         else:
             self.NeedPositionMotor2 = self.NeedPositionMotor2 + command
 
-        if self.NeedPositionMotor2 < 0:
+        if self.NeedPositionMotor2 < self.MinPositionM2:
             if not self.NoLimit:
-                self.NeedPositionMotor2 = 0
-        elif self.NeedPositionMotor2 > self.MaxSteppersM2:
+                self.NeedPositionMotor2 = self.MinPositionM2
+        elif self.NeedPositionMotor2 > self.MaxPositionM2:
             if not self.NoLimit:
-                self.NeedPositionMotor2 = self.MaxSteppersM2
+                self.NeedPositionMotor2 = self.MaxPositionM2
         
         if command:
             print(f'command {command} Position {self.PositionMotor2} NeedPosition {self.NeedPositionMotor2}')
@@ -302,20 +312,32 @@ class motor_control():
 
     def SetParam(self, param, value):
         ret = 0
-        if param == self.STEPPERS_1:
-            self.config["MotionOption"]["MaxSteppersM1"] = str(value)
-            self.MaxSteppersM1 = int(self.config["MotionOption"]["MaxSteppersM1"])
-            print(f"Max steppers step motor 1 {self.MaxSteppersM1}")
+        if param == self.MAX_POSITION_STEPPERS_1:
+            self.config["MotionOption"]["MaxPositionM1"] = str(value)
+            self.MaxPositionM1 = int(self.config["MotionOption"]["MaxPositionM1"])
+            print(f"Max position motor 1 {self.MaxPositionM1}")
             ret = 1
-        elif param == self.STEPPERS_2:
-            self.config["MotionOption"]["MaxSteppersM2"] = str(value)
-            self.MaxSteppersM2 = int(self.config["MotionOption"]["MaxSteppersM2"])
-            print(f"Max steppers step motor 2 {self.MaxSteppersM2}")
+        elif param == self.MAX_POSITION_STEPPERS_2:
+            self.config["MotionOption"]["MaxPositionM2"] = str(value)
+            self.MaxPositionM2 = int(self.config["MotionOption"]["MaxPositionM2"])
+            print(f"Max position motor 2 {self.MaxPositionM2}")
+            ret = 1
+        elif param == self.MIN_POSITION_STEPPERS_1:
+            self.config["MotionOption"]["MinPositionM1"] = str(value * (-1))
+            self.MinPositionM1 = int(self.config["MotionOption"]["MinPositionM1"])
+            print(f"Min position motor 1 {self.MinPositionM1}")
+            ret = 1
+        elif param == self.MIN_POSITION_STEPPERS_2:
+            self.config["MotionOption"]["MinPositionM2"] = str(value * (-1))
+            self.MinPositionM2 = int(self.config["MotionOption"]["MinPositionM2"])
+            print(f"Min position motor 2 {self.MinPositionM2}")
             ret = 1
         elif param == self.FREQ_MOTOR_1:
             self.config["MotionOption"]["FreqM1"] = str(value)
             self.FreqM1 = int(self.config["MotionOption"]["FreqM1"])
             print(f"Freq motor 1 {self.FreqM1}")
+            if self.FreqM1 == 0:
+                self.FreqM1 = 1
             self.DelayM1 = 1.0 / float(self.FreqM1)
             if self.DelayM1 < 0.001:
                 self.DelayM1 = 0.001
@@ -326,6 +348,8 @@ class motor_control():
             self.config["MotionOption"]["FreqM2"] = str(value)
             self.FreqM2 = int(self.config["MotionOption"]["FreqM2"])
             print(f"Freq motor 2 {self.FreqM2}")
+            if self.FreqM2 == 0:
+                self.FreqM2 = 1
             self.DelayM2 = 1.0 / float(self.FreqM2)
             if self.DelayM2 < 0.001:
                 self.DelayM2 = 0.001
@@ -339,10 +363,14 @@ class motor_control():
         return ret
 
     def GetParam(self, param):
-        if param == self.STEPPERS_1:
-            return self.MaxSteppersM1
-        elif param == self.STEPPERS_2:
-            return self.MaxSteppersM2
+        if param == self.MAX_POSITION_STEPPERS_1:
+            return self.MaxPositionM1
+        elif param == self.MAX_POSITION_STEPPERS_2:
+            return self.MaxPositionM2
+        elif param == self.MIN_POSITION_STEPPERS_1:
+            return self.MinPositionM1 * (-1)
+        elif param == self.MIN_POSITION_STEPPERS_2:
+            return self.MinPositionM2 * (-1)
         elif param == self.FREQ_MOTOR_1:
             return self.FreqM1
         elif param == self.FREQ_MOTOR_2:
